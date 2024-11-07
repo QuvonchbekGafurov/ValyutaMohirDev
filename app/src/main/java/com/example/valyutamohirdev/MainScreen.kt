@@ -3,6 +3,7 @@ package com.example.valyutamohirdev
 import android.util.Log
 import androidx.annotation.ColorInt
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,13 +23,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
+import com.google.gson.Gson
+
 @Composable
 fun painterfun(countryCode: String) = rememberImagePainter(
     "https://flagcdn.com/w320/$countryCode.png"
 )
 @Composable
-fun CurrencyScreen(viewModel: CurrencyViewModel = viewModel()) {
+fun CurrencyScreen(viewModel: CurrencyViewModel = viewModel(),navController: NavController) {
     val currencyRates by viewModel.currencyRates.observeAsState(emptyList())
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState()
@@ -47,15 +51,20 @@ fun CurrencyScreen(viewModel: CurrencyViewModel = viewModel()) {
             if (currencyRates.isNotEmpty()) {
                 Text(text = currencyRates[0].Date, fontWeight = FontWeight.Bold)
             } else {
-                Text(text = "No data available", fontWeight = FontWeight.Bold, color = Color.Red)
+                Text(text = "", fontWeight = FontWeight.Bold, color = Color.Red)
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
         when {
             isLoading -> {
                 // Yuklanayotgan holat
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center) // Markazda joylashishi uchun
+                ) {
+                    CircularProgressIndicator()
+                }            }
             error != null -> {
                 // Xatolik mavjud bo'lsa
                 Text(text = error!!, color = Color.Red)
@@ -64,7 +73,7 @@ fun CurrencyScreen(viewModel: CurrencyViewModel = viewModel()) {
                 // Muvaffaqiyatli yuklangan holat
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(currencyRates) { rate ->
-                        CurrencyRateItem(rate = rate)
+                        CurrencyRateItem(rate = rate,navController=navController)
                     }
                 }
             }
@@ -72,7 +81,7 @@ fun CurrencyScreen(viewModel: CurrencyViewModel = viewModel()) {
     }
 }
 @Composable
-fun CurrencyRateItem(rate: CurrencyRate) {
+fun CurrencyRateItem(rate: CurrencyRate,navController: NavController) {
     val imageUrl = "https://countryflags.io/us/flat/64.png"  // Manzilni to'g'ri tekshirib chiqing
     val painter = rememberImagePainter(
         data = imageUrl,
@@ -81,7 +90,11 @@ fun CurrencyRateItem(rate: CurrencyRate) {
             placeholder(R.drawable.ic_launcher_background)  // Yuklanayotgan rasm uchun placeholder
         }
     )
-    Column {
+    Column(modifier = Modifier.clickable {
+        val rateJson = Gson().toJson(rate)
+        // JSON String ko'rinishida yuborish
+        navController.navigate("currencyDetail/$rateJson")
+    }) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             val countryCode=rate.Ccy.take(2).lowercase()
             Log.e("TAG", "CurrencyRateItem: $countryCode", )
